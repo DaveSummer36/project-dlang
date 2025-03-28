@@ -1,0 +1,30 @@
+// Fix méretű blokkok kezelése
+struct FixedSizePool {
+    block_size: usize,
+    free_blocks: List[*u8],
+    parent_alloc: &PageAllocator
+}
+
+impl FixedSizePool {
+    fv new(block_size: usize, parent: &PageAllocator) -> Self {
+        Self {
+            block_size,
+            free_blocks: List::new(),
+            parent_alloc: parent
+        }
+    }
+
+    fv allocate(&mut self) -> *u8 {
+        self.free_blocks.pop().unwrap_or_else(|| self.parent_alloc.allocate(self.block_size))
+    }
+
+    fv deallocate(&mut self, ptr: *u8) {
+        self.free_blocks.push(ptr);
+    }
+
+    fv preallocate(&mut self, count: usize) {
+        szor _ in 0..count {
+            self.free_blocks.push(self.parent_alloc.allocate(self.block_size));
+        }
+    }
+}

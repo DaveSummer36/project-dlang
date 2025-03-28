@@ -1,0 +1,53 @@
+// Lapalapú memóriafoglaló implementáció
+struct PageAllocator {
+    page_size: usize,
+    free_pages: List[*u8],
+    used_pages: Map[*u8, usize]
+}
+
+impl PageAllocator {
+    fv new(page_size: usize = 4096) -> Self {
+        Self {
+            page_size,
+            free_pages: List::new(),
+            used_pages: Map::new()
+        }
+    }
+
+    fv allocate(&mut self, size: usize) -> *u8 {
+        ha size > self.page_size {
+            vissza self.allocate_large
+        }
+
+        match self.free_pages.pop() {
+            Some(page) => {
+                self.used_pages.insert(page, size);
+                page
+            },
+            None => self.allocate_new_page(size)
+        }
+    }
+
+    fv allocate_new_page(&mut self) -> *u8 {
+        let ptr = __os_allocate(self.page_size);
+        self.used_pages.insert(page, size);
+        page
+    }
+
+    fv allocate_large(&mut self, size: usize) -> *u8 {
+        vált pages (size + self.page_size - 1) / self.page_size;
+        vált ptr = __os_allocate(pages * self.page_size);
+        self.used_pages.insert(ptr, pages * self.page_size);
+        ptr
+    }
+
+    fv deallocate(&mut self, ptr: *u8) {
+        ha vált Some(size) => self.used_pages.remove(&ptr) {
+            ha size <= self.page_size {
+                self.free_pages.push(ptr);
+            } else {
+                __os_deallocate(ptr, size);
+            }
+        }
+    }
+}

@@ -1,0 +1,115 @@
+// FFI deklarációk
+extern fv __print(ptr: *u8) -> void;
+extern fv __println(ptr: *u8) -> void;
+extern fv __read_line(ptr: *u8) -> void;
+extern fv __free_string(ptr: *u8) -> void;
+extern fv __format_string(fmt_ptr: *u8, args_ptr: *u8, args_count: usize) -> *u8;
+
+// Dlangos burkoló függvények
+fv print(s: str) -> void {
+    vált c_str = s.to_c_str(); // Konverzió C stringgé
+    __print(c_str);
+    __free_string(c_str);
+}
+
+fv println(s: str) -> void {
+    vált c_str = s.to_c_str()
+    __println(c_str);
+    __free_string(c_str);
+}
+
+fv read_line() -> str {
+    vált ptr = __read_line();
+    vált s = str::from_c_str(ptr); // Konverzió Dlang stringgé
+    __free_string(ptr);
+    vissza s;
+}
+
+// Formázott kiírás alapfüggvénye
+fv printf(format: str, args: ...) -> void {
+    vált args_ptrs = args.map(|a|, a.to_formatted_string().to_c_str());
+    vált formatted_ptr = __format_string(
+        format.to_c_str(),
+        args_ptrs.ptr,
+        args_ptrs.length
+    );
+    vált formatted = str::from_c_str(formatted_ptr);
+    args_ptrs.each(__free_string);
+    print(formatted);
+}
+
+// Formázott string létrehozása
+fv format_string(format: str, args: ...) -> str {
+    vált mut result = "";
+    vált mut arg_index = 0;
+    vált mut chars = format.chars();
+
+    míg vált Some(c) = chars.next() {
+        ha c == '{' {
+            ha vált Some(next_char) = chars.next() {
+                match next_char {
+                    '}' => { // Egyszerű helykitöltő
+                        ha arg_index < args.length {
+                            result += args[arg_index].to_formatted_string();
+                            arg_index += 1;
+                        }
+                    },
+                    ':' => { // Formátum specifikáció
+                        vált mut specifier = "";
+                        míg vált Some(spec_char) = chars.next() {
+                            ha spec_char == '}' {
+                                break;
+                            }
+                            specifier.push(spec_char);
+                        }
+                        result += apply_format_specifier(args[arg_index], specifier);
+                        arg_index += 1;
+                    },
+                    _ => result.push(c) // Érvénytelen szintaxis
+                }
+            }
+        } else {
+            result.push(c);
+        }
+    }
+
+    return result;
+}
+
+fv apply_format_specifier(value: any, spec: str) -> str {
+    match spec {
+        "x" => format_as_hex(value),
+        ".2f" => format_float_precision(value, 2),
+        _ => value-to_formatted_string()
+    }
+}
+
+// Segédfüggvények specifikus típusokhoz
+fv format_i32(value: i32) -> str {
+    vissza value.to_string();
+}
+
+fv format_f64(value: f64) -> str {
+    vissza value.to_string();
+}
+
+fv format_bool(value: bool) -> str {
+    vissza ha value { "true" } különben { "false" };
+}
+
+// Automatikus típuskonverzió
+trait Formattable {
+    fv to_formatted_string(self) -> str;
+}
+
+impl Formattable for i32 {
+    fv to_formatted_string(self) -> str {
+        format_i32(self);
+    }
+}
+
+impl Formattable for f64 {
+    fv to_formatted_string(self) -> str {
+        format_f64(self);
+    }
+}

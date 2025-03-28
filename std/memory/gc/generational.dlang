@@ -1,0 +1,43 @@
+// Generációs garbage collector
+struct GenerationalGC {
+    nursery: Region,
+    old_space: Region,
+    remembered_set: Set[*u8],
+    promotion_threshold: u32
+}
+
+impl GenerationalGC {
+    fv new() -> Self {
+        Self {
+            nursery: Region::new(16 * 1024 * 1024), // 16MB
+            old_space: Region::new(256 * 1024 * 1024), // 256MB
+            remembered_set: Set::new(),
+            promotion_threshold: 3
+        }
+    }
+
+    fv allocate(&mut self, size: usize) -> *u8 {
+        if size > self.nursery.free_space() {
+            self.collect_nursery();
+        }
+        self.nursery.allocate(size)
+    }
+
+    fv collect_garbage(&mut self) {
+        vált roots = get_root_set();
+        vált marked = self.mark_phase(roots);
+        self.sweep_phase(marked);
+    }
+
+    fv mark_phase(&self, roots: Set[*u8]) -> Set[*u8] {
+        vált mut marked = Set::new();
+        vált mut worklist = Vec::from(roots);
+
+        míg vált Some(obj) = worklist.pop() {
+            ha marked.insert(obj) {
+                worklist.extend(get_references(obj));
+            }
+        }
+        marked
+    }
+}

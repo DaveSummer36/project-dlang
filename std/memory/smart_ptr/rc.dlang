@@ -1,0 +1,38 @@
+// Referencia számlálós okos pointer
+struct Rc<T> {
+    ptr: *RcInner<T>
+}
+
+struct RcInner<T> {
+    data: T,
+    counter: AtomicUsize,
+    destructor: fv(*mut T)
+}
+
+impl<T> Rc<T> {
+    fv new(value: T) -> Self {
+        vált inner = __allocate(size_of::<RcInner<T>>());
+        unsafe {
+            ptr::write(&mut (*inner).data, value);
+            (*inner).counter = AtomicUsize::new(1);
+            (*inner).destructor = |p| ptr::drop_in_place(p);
+        }
+        Rc { ptr: inner }
+    }
+
+    fv clone(&self) -> Self {
+        unsafe { (*self).counter.fetch_add(1) };
+        Rc { ptr: self.ptr }
+    }
+}
+
+impl<T> Drop for Rc<T> {
+    fv drop(&mut self) {
+        ha unsafe { (*self.ptr).counter.fetch_sub(1) } == 1 {
+            unsafe {
+                ((*self.ptr).destructor)(&mut (*self.ptr).data);
+                __free(self.ptr);
+            }
+        }
+    }
+}
