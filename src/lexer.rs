@@ -7,7 +7,7 @@ pub enum Token {
     #[token("fv")]
     KeywordFn,
     
-    #[token("vált")]
+    #[token("var")]
     KeywordLet,
     
     #[token("konst")]
@@ -19,10 +19,10 @@ pub enum Token {
     #[token("ha")]
     KeywordIf,
     
-    #[token("különben")]
+    #[token("vagy")]
     KeywordElse,
     
-    #[token("míg")]
+    #[token("mialatt")]
     KeywordWhile,
     
     #[token("szor")]
@@ -31,14 +31,17 @@ pub enum Token {
     #[token("strukt")]
     KeywordStruct,
     
-    #[token("behajt")]
+    #[token("impl")]
     KeywordImpl,
     
     #[token("aszink")]
     KeywordAsync,
     
-    #[token("bevár")]
+    #[token("akkor")]
     KeywordAwait,
+
+    #[token("eset")]
+    KeywordMatch,
     
     // Azonosítók
     #[regex(r"[a-zA-Z_][a-zA-Z0-9_]*", |lex| lex.slice().to_string())]
@@ -51,13 +54,13 @@ pub enum Token {
     #[regex(r"-?\d+\.\d+", |lex| lex.slice().parse().ok())]
     Float(f64),
     
-    #[regex(r#"([^"\\]|\\.*""#, |lex| {
+    #[regex(r#""([^"\\]|\\.)*""#, |lex| {
         let s = lex.slice();
         s[1..s.len()-1].to_string()
     })]
     StringLit(String),
     
-    #[regex(r"true|false", |lex| lex.slice().parse().ok())]
+    #[regex(r"igaz|hamis", |lex| lex.slice().parse().ok())]
     Bool(bool),
     
     // Operátorok

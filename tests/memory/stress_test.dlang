@@ -1,0 +1,12 @@
+import std.memory;
+import std.benchmark;
+
+fv test_allocator() {
+    vált allocator = PageAllocator::new();
+    benchmark::run("Allocation Stress Test", || {
+        szor i in 0..1_000_000 {
+            vált ptr = allocator.allocate(128);
+            allocator.deallocate(ptr, 128);
+        }
+    });
+}

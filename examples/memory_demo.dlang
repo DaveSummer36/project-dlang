@@ -1,0 +1,19 @@
+import std.memory;
+import std.io;
+
+fv main() {
+    // 1. Kézi memóriakezelés
+    vált allocator = PageAllocator::new();
+    vált mem = allocator.allocate(1024);
+    defer allocator.deallocate(mem, 1024);
+
+    // 2. Garbage collector
+    vált gc = GenerationalGC::new();
+    vált data = gc.allocate(128);
+
+    // 3. Okos pointer
+    vált shared1 = Rc::new(42);
+    vált shared2 = shared.clone();
+
+    println("Memory operations completed!");
+}
