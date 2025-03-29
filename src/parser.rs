@@ -50,7 +50,7 @@ pub enum Stmt {
     Expr(Expr),
     Let {
         name: String,
-        type_annot: Option<String>,
+        type_annot: String,
         value: Expr,
     },
     Return(Option<Expr>),
@@ -64,7 +64,7 @@ pub enum Stmt {
 pub struct Function {
     pub name: String,
     pub params: Vec<(String, Option<String>)>,
-    pub return_type: Option<String>,
+    pub return_type: String,
     pub body: Vec<Stmt>,
 }
 
@@ -95,7 +95,7 @@ impl<'a> Parser<'a> {
 
     fn expect_token(&mut self, expected: Token) -> Result<(), String> {
         match &self.current_token {
-            Some((Token, _)) if *token == expected => {
+            Some((token, _)) if *token == expected => {
                 self.consume_token();
                 Ok(())
             }
@@ -154,7 +154,16 @@ impl<'a> Parser<'a> {
         let body = self.parse_block()?;
         self.expect_token(Token::RBrace)?;
 
-        Ok(Function { name, params, return_type, body })
+        if let Some(name) = name {
+            Ok(Function {
+                name: name.unwrap_or_else(|| "".to_string()),
+                params,
+                return_type,
+                body,
+            })
+        } else {
+            Err("Function name is missing".to_string())
+        }
     }
 
     fn parse_params(&mut self) -> Result<Vec<(String, Option<String>)>, String> {
