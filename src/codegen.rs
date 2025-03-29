@@ -8,10 +8,13 @@ pub struct CodeGen<'ctx> {
 }
 
 impl<'ctx> CodeGen<'ctx> {
-    pub fn new(context: &'ctx Context) -> Self {
+    fn new(context: &'ctx Context) -> Self {
         let module = context.create_module("dlang");
         let builder = context.create_builder();
-        Self { context, module, builder }
+        let codegen = Self { context, module, builder };
+
+        let fn_type = context.void_type().fn_type(&[context.i8_type().ptr_type(..).into()], false);
+        codegen.module.add_function("print", fn_type, None);
     }
     
     pub fn compile(&mut self, program: &Program) -> Result<(), String> {
@@ -22,8 +25,14 @@ impl<'ctx> CodeGen<'ctx> {
         for fv in &program.functions {
             self.define_function(fv)?;
         }
+
+        let pass_manager_builder = inkwell::passes::PassManagerBuilder::create();
+        pass_manager_builder.set_optimalization_level(inkwell::OptimizationLevel::Aggressive);
+        let module_pass_manager = self.module.create_pass_manager();
+        pass_manager_builder.populate_module_pass_manager(&module_pass_manager);
+        module_pass_manager.run_on(&self.module);
         
-        self.module.print_to_file("outpul.ll").map_err(|e| e.to_string())?;
+        self.module.print_to_file("output.ll").map_err(|e| e.to_string())?;
         Ok(())
     }
     
@@ -34,12 +43,11 @@ impl<'ctx> CodeGen<'ctx> {
             Some("bool") => self.context.bool_type(),
             Some("str") => self.context.i8_type().ptr_type(inkwell::AddressSpace::Generic),
             None => self.context.void_type(),
-            _ => return Err(format!("Unknown return type: {:?}, fv.return_type"))
+            _ => return Err(format!("Unknown return type: {:?}", fv.return_type))
         };
         
         let param_type: Vec<_> = fv.params.iter()
-            .map(|(_, typ)| self.parse_type(type))
-            .collect::Result<_, _>>()?;
+            .map(|(_, typ)| self.parse_type(typ)).collect::<Result<Vec<_>, _>>()?;
         
         let fv_type = return_type.fv_type(&param_types, false);
         self.module.add_function(&fv.name, fv_type, None);
@@ -70,7 +78,7 @@ impl<'ctx> CodeGen<'ctx> {
         Ok(())
     }
     
-    fn compile_stmt(&mut self, stmt: &Stmt, fuggveny: &Function, inkwell::values::FunctionValue<'ctx>) -> Result<(), String> {
+    fn compile_stmt(&mut self, stmt: &Stmt, fuggveny: inkwell::values::FunctionValue<'ctx>) -> Result<(), String> {
         match stmt {
             Stmt::Let { name, value, .. } => {
                 let val = self.compile_expr(value)?;
@@ -116,7 +124,7 @@ impl<'ctx> CodeGen<'ctx> {
         }
     }
     
-    fn parse_type(&self, type_str: &Option<String>) -> Result<inkwell::types:BasicTypeEnum<'ctx>, String> {
+    fn parse_type(&self, type_str: &Option<String>) -> Result<inkwell::types::BasicTypeEnum<'ctx>, String> {
         match type_str.as_deref() {
             Some("i32") => Ok(self.context.i32_type().into()),
             Some("f64") => Ok(self.context.f64_type().into()),

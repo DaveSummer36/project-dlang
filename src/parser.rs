@@ -186,9 +186,8 @@ impl<'a> Parser<'a> {
             } else {
                 break;
             }
-
-            Ok(params);
         }
+        Ok(params) // Javítva (return a cikluson belül volt)
     }
 
     fn parse_block(&mut self) -> Result<Vec<Stmt>, String> {
@@ -351,7 +350,7 @@ impl<'a> Parser<'a> {
         Ok(Expr::Call { callee, args })
     }
 
-    fn parse_if_epxr(&mut self) -> Result<Expr, String> {
+    fn parse_if_expr(&mut self) -> Result<Expr, String> {
         self.expect_token(Token::KeywordIf)?;
 
         let condition = Box::new(self.parse_expr()?);
