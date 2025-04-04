@@ -171,3 +171,46 @@ pub unsafe extern "C" fn dlang_time_clear_interval(handle: *mut c_void) {
 }
 
 #[no_mangle]
+
+// --- Benchmarking ---
+pub unsafe extern "C" fn dlang_time_benchmark(
+    f: extern "C" fn(*mut c_char),
+    iterations: u32,
+    data: *mut c_char
+) -> f64 {
+    let mut total = 0;
+    for _ in 0..iterations {
+        let start = SystemTime::now();
+        f(data);
+        total += SystemTime::now().duration_since(start).unwrap().as_secs_f64() * 1000.0;
+    }
+    total / iterations as f64
+}
+
+// --- Magas felbontású időmérés ---
+#[repr(C)]
+pub struct DlangPerformanceTimer {
+    start_time: SystemTime
+}
+
+#[no_mangle]
+pub extern "C" fn dlang_performance_timer_start() -> *mut DlangPerformanceTimer {
+    Box::into_raw(Box::new(DlangPerformanceTimer {
+        start_time: SystemTime::now()
+    }))
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn dlang_performance_timer_stop(timer: *mut DlangPerformanceTimer) -> f64 {
+    let timer = Box::from_raw(timer);
+    let duration = SystemTime::now().duration_since(timer.start_time).unwrap();
+    duration.as_secs_f64() * 1000.0 // ms-ban
+}
+
+// --- Segédfüggvények ---
+#[no_mangle]
+pub unsafe extern "C" fn dlang_free_string(ptr: *mut c_char) {
+    if !ptr.is_null() {
+        let _ = CString::from_raw(ptr);
+    }
+}
