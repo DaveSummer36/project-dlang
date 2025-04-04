@@ -2,7 +2,49 @@
 name = "dlang_compiler"
 version = "0.1.0"
 edition = "2021"
+authors = ["Dave Summer <dave36summer@gmail.com>"]
+description = "A Rust-based compiler for the DLang programming language"
+license = "ISC"
+repository = "https://github.com/DaveSummer36/project-dlang"
 
+# --- Könyvtártípusok ---
+[lib]
+name = "dlang_stdlib"
+path = "./stdlib/src"
+crate_type = ["staticlib", "cdylib"] # FFI-hez és statikus linkeléshez
+
+# --- Fő dependenciák ---
 [dependencies]
-inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master" }
-logos = "0.12"
+# Lexer & Parser
+logos = "0.15.0"
+lalrpop = { version = "0.22.1", features = ["lexer"] } # Parser generálás (opcionális)
+
+# Közvetlen LLVM használat
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master" } # LLVM wrapper
+
+# Standard könyvtár
+libc = "0.2"
+chrono = "0.4.40"
+rand = "0.9.0"
+reqwest = { version = "0.12.15", features = ["blocking"], optional = true } # HTTP (net modul)
+serde_json = { version = "1.0", optional = true } # JSON támogatás (jövőbeli tervek)
+
+# Hibakezelés és naplózás
+thiserror = "2.0.12"           # Saját hibatípusokhoz
+log = "0.4"                 # Naplózás keretrendszer
+pretty_env_logger = "0.5"   # Színes naplózás (dev-only)
+
+# --- Fejlesztői dependenciák ---
+[dev-dependencies]
+rstest = "0.25.0"     # Teszteléshez
+criterion = "0.5"   # Teljesítménytesztekhez
+
+# --- Build script ---
+[build-dependencies]
+lalrpop = { version = "0.22.1", features = ["lexer"] } # Parser generálás build időben
+
+# --- Feature flags ---
+[features]
+default = []
+net = ["reqwest"]       # Hálózati funkciók engedélyezése
+json = ["serde_json"]   # JSON támogatás
